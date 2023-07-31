@@ -1,5 +1,5 @@
 # SQL_Retail_Customer_Sales_Analysis
-Dataset Reference(https://sqlzoo.net/wiki/AdventureWorks)
+Database Reference(https://sqlzoo.net/wiki/AdventureWorks)
 Customer(CustomerID, FirstName, MiddleName, LastName, CompanyName, EmailAddress)
 CustomerAddress(CustomerID, AddressID, AddressType)
 Address(AddressID, AddressLine1, AddressLine2, City, StateProvince, CountyRegion, PostalCode)
