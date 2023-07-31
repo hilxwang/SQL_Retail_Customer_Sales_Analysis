@@ -1,5 +1,5 @@
 # SQL_Retail_Customer_Sales_Analysis
-
+ 
 Customer(CustomerID, FirstName, MiddleName, LastName, CompanyName, EmailAddress)
 CustomerAddress(CustomerID, AddressID, AddressType)
 Address(AddressID, AddressLine1, AddressLine2, City, StateProvince, CountyRegion, PostalCode)
