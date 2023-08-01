@@ -1,109 +1,75 @@
--- 1)
-select FirstName, EmailAddress
-from Customer
-where CompanyName = 'Bike World';
+-- 1) Show the first name and the email address of customer with CompanyName 'Bike World'
 
+SELECT FirstName, EmailAddress
+FROM Customer
+WHERE CompanyName = 'Bike World';
 
+-- 2) Show the CompanyName for all customers with an address in City 'Dallas'.
 
--- 2)
-select CompanyName
-from Customer
-join CustomerAddress on Customer.CustomerID = CustomerAddress.CustomerID
-join Address on CustomerAddress.AddressID= Address.AddressID
-where city = 'Dallas';
+SELECT DISTINCT CompanyName
+FROM Customer
+JOIN CustomerAddress ON Customer.CustomerID = CustomerAddress.CustomerID
+JOIN Address ON CustomerAddress.AddressID = Address.AddressID
+WHERE city = 'Dallas';
 
 -- result:
 -- CompanyName
 -- Town Industries
 -- Elite Bikes
--- Elite Bikes
 -- Third Bike Store
 -- Unsurpassed Bikes
 -- Rental Bikes
 
--- 3)
--- method 1:
-select distinct count(SalesOrderDetail.ProductID) as numItem
-from SalesOrderDetail
- join Product on SalesOrderDetail.ProductID = Product.ProductID 
-where ListPrice > 1000;
+-- 3) How many items with ListPrice more than $1000 have been sold?
 
--- method 2:
-SELECT COUNT(1) as 'numItem'
+SELECT COUNT(1) as '# of items'
 FROM (SELECT COUNT(DISTINCT sod.productID) as num
-	       FROM SalesOrderDetail sod
-      	       	JOIN (Select Product.ProductID 
-                               From Product 
-            	           Where Product.ListPrice > 1000) p
-                     ON sod.ProductID = p.ProductID
-               GROUP BY p.productID) a
+FROM SalesOrderDetail sod
+JOIN (Select Product.ProductID FROM Product Where Product.ListPrice > 1000) p ON sod.ProductID = p.ProductID
+GROUP BY p.productID) a;
 
 -- result:
 -- numItem
 -- 41
 
--- 4)
--- method 1:
-select CompanyName
-from Customer
- join SalesOrderHeader on Customer.CustomerID = SalesOrderHeader.CustomerID
- where (SalesOrderHeader.subtotal + TaxAmt + Freight) > 100000;
- 
- method 2:
- SELECT SalesOrderID,
-              CONCAT(c.FirstName, ' ', c.LastName) AS CustName,
-              c.CompanyName, soh.SubTotal, soh.TaxAmt, soh.Freight,
-              soh.SubTotal+soh.TaxAmt+soh.Freight AS 'Sale Amount' 
+-- 4) Give the CompanyName of those customers with orders over $100000. Include the subtotal plus tax plus freight.
+
+SELECT SalesOrderID, CONCAT(c.FirstName, ' ', c.LastName) AS CustName,
+	c.CompanyName, soh.SubTotal, soh.TaxAmt, soh.Freight,
+	soh.SubTotal+soh.TaxAmt+soh.Freight AS 'Sale Amount' 
 FROM SalesOrderHeader AS soh
-	LEFT JOIN Customer AS c
-	ON soh.CustomerID = c.CustomerID
-WHERE soh.SubTotal+soh.TaxAmt+soh.Freight > 100000
- 
+LEFT JOIN Customer AS c ON soh.CustomerID = c.CustomerID
+WHERE soh.SubTotal+soh.TaxAmt+soh.Freight > 100000;
+
 --  result:
 -- CompanyName
 -- Action Bicycle Specialists
 -- Metropolitan Bicycle Supply
 
--- 5)
--- method 1:
-select sum(SalesOrderDetail.OrderQty) as numRacingSockL
-from SalesOrderDetail
- join Product on SalesOrderDetail.ProductID = Product.ProductID
- join SalesOrderHeader on SalesOrderDetail.SalesOrderID = SalesOrderHeader.SalesOrderID
- join Customer on SalesOrderHeader.CustomerID = Customer.CustomerID
-where Product.Name = 'Racing Socks, L' and CompanyName = 'Riding Cycles';
-
--- method 2:
-
+-- 5) Find the number of left racing socks ('Racing Socks, L') ordered by CompanyName 'Riding Cycles'.
 Select CN.CompanyName, PN.OrderQty
-From
-(Select SalesOrderID, OrderQty
+From (Select SalesOrderID, OrderQty
 From SalesOrderDetail As SOD
-Join Product
-On SOD.ProductID = Product.ProductID
-Where Product.Name = 'Racing Socks, L') As PN
-Join
-(Select SalesOrderID, SOH.CustomerID, CompanyName
+Join Product p
+On SOD.ProductID = p.ProductID
+Where p.Name = 'Racing Socks, L') As PN
+Join (Select SalesOrderID, SOH.CustomerID, CompanyName
 From SalesOrderHeader SOH
-Join Customer 
-On SOH.CustomerID = Customer.CustomerID
+Join Customer c
+On SOH.CustomerID = c.CustomerID
 Where CompanyName = 'Riding Cycles') As CN
-On PN.SalesOrderID = CN.SalesOrderID
+On PN.SalesOrderID = CN.SalesOrderID;
 
 --  result:
 --  numRacingSockL
 --  3
 
-
--- 6)
+-- 6) A "Single Item Order" is a customer order where only one item is ordered. Show the SalesOrderID and the UnitPrice for every Single Item Order.
 
 SELECT sod.SalesOrderID, ProductID, UnitPrice
 FROM SalesOrderDetail sod
-	JOIN (SELECT SalesOrderID
-	           FROM SalesOrderDEtail
-      	           GROUP BY SalesOrderID
-                  HAVING COUNT(ProductID)=1) oo
-       ON sod.SalesOrderID=oo.SalesOrderID
+JOIN (SELECT SalesOrderID FROM SalesOrderDEtail GROUP BY SalesOrderID HAVING COUNT(ProductID)=1) oo
+ON sod.SalesOrderID=oo.SalesOrderID;
 
 -- result:
 -- SalesOrderID	ProductID	UnitPrice
@@ -112,33 +78,15 @@ FROM SalesOrderDetail sod
 -- 71917	875	5.39
 -- 71938	973	1020.59
 
--- 7)
--- method 1:
-select Product.Name, Customer.CompanyName
-from ProductModel
-  join Product on ProductModel.ProductModelID = Product.ProductModelID
-  join SalesOrderDetail on Product.ProductID = SalesOrderDetail.ProductID
-  join SalesOrderHeader on SalesOrderDetail.SalesOrderID = SalesOrderHeader.SalesOrderID
-  join Customer on SalesOrderHeader.CustomerID = Customer.CustomerID
+-- 7) Where did the racing socks go? List the product name and the CompanyName for all Customers who ordered ProductModel 'Racing Socks'.
 
-where ProductModel.Name = 'Racing Socks';
-
--- method 2:
-Select Name,CompanyName
-From (Select SalesOrderID, RS.Name
-           From SalesOrderDetail As SOD
-           Join (Select PD.Name, PD.ProductID 
-                    From Product As PD
-                    Join ProductModel As PM
-                   On PD.ProductModelID = PM.ProductModelID
-                   Where PM.Name = 'Racing Socks') As RS
-            On SOD.ProductID = RS.ProductID) As PN
-Join 
-(Select SOH.SalesOrderID, CT.CompanyName
-From SalesOrderHeader As SOH
-Join Customer As CT
-On SOH.CustomerID = CT.CustomerID) As CN
-On PN.SalesOrderID = CN.SalesOrderID
+SELECT DISTINCT p.Name, c.CompanyName
+FROM ProductModel pm
+JOIN Product p on p.ProductModelID = pm.ProductModelID 
+JOIN SalesOrderDetail od on od.ProductID = P.ProductID 
+JOIN SalesOrderHeader oh on od.SalesOrderID = oh.SalesOrderID
+JOIN Customer c on oh.CustomerID = c.CustomerID 
+WHERE pm.name= 'Racing Socks';
 
 -- result:
 -- Name	CompanyName
@@ -153,53 +101,29 @@ On PN.SalesOrderID = CN.SalesOrderID
 -- Racing Socks, L	The Bicycle Accessories Company
 -- Racing Socks, L	Remarkable Bike Store
 
--- 8)
--- method 1:
-select ProductDescription.Description
-from ProductDescription
+-- 8) Show the product description for culture 'fr' for product with ProductID 736.
 
- join ProductModelProductDescription on ProductDescription.ProductDescriptionID = ProductModelProductDescription.ProductDescriptionID
- join ProductModel on ProductModelProductDescription.ProductModelID = ProductModel.ProductModelID
- join Product on ProductModel.ProductModelID = Product.ProductModelID
-
- where ProductModelProductDescription.culture = 'fr'
-  and Product.ProductID = '736';
-  
--- method 2:
-SELECT pd.Description
-FROM ProductDescription AS pd
-  JOIN ProductModelProductDescription AS pmpd ON pmpd.ProductDescriptionID = pd.ProductDescriptionID 
-  JOIN ProductModel AS pm ON pm.ProductModelID = pmpd.ProductModelID
-  JOIN Product AS p ON p.ProductModelID = pm.ProductModelID
-WHERE pmpd.Culture = 'fr' AND p.ProductID = 736
+SELECT pd.Description, pmpd.culture, P.ProductID
+FROM ProductDescription pd
+JOIN ProductModelProductDescription pmpd on pd.ProductDescriptionID = pmpd.ProductDescriptionID
+JOIN Product p on p.ProductModelID = pmpd.ProductModelID 
+WHERE pmpd.culture = 'fr' AND P.ProductID = 736;
 
 -- result:
 -- Description
 -- Le cadre LL en aluminium offre une conduite confortable, une excellente absorption des bosses pour un très bon rapport qualité-prix
 
--- 9)
--- method 1:
-select Customer.CompanyName, SalesOrderHeader.SubTotal,SUM(SalesOrderDetail.OrderQty * Product.weight) as sumWeight
-from Product
-  join SalesOrderDetail on Product.ProductID = SalesOrderDetail.ProductID
-  join SalesOrderHeader on SalesOrderDetail.SalesOrderID = SalesOrderHeader.SalesOrderID
-  join Customer on SalesOrderHeader.CustomerID = Customer.CustomerID
-  group by SalesOrderHeader.SalesOrderID, SalesOrderHeader.SubTotal, Customer.CompanyName
-  order by SalesOrderHeader.SubTotal DESC;
-  
---  method 2:
+-- 9) Use the SubTotal value in SaleOrderHeader to list orders from the largest to the smallest. For each order show the CompanyName and the SubTotal and the total weight of the order.
+
 SELECT soh.SalesOrderID, c.CompanyName, soh.SubTotal, sdp.TotalWeight 
 FROM SalesOrderHeader soh
-	JOIN
-	(SELECT SalesOrderID, SUM(sod.OrderQty*p.Weight) as TotalWeight
-    	 FROM SalesOrderDetail sod
-               JOIN Product p
-               ON sod.ProductID = p.ProductID
-    	 GROUP BY SalesOrderID) sdp
-	ON soh.SalesOrderID = sdp.SalesOrderID
-	JOIN Customer c
-	ON soh.CustomerID = c.CustomerID
-ORDER BY SubTotal DESC
+JOIN (SELECT SalesOrderID, SUM(sod.OrderQty*p.Weight) as TotalWeight
+    	FROM SalesOrderDetail sod
+	JOIN Product p ON sod.ProductID = p.ProductID
+	GROUP BY SalesOrderID) sdp ON soh.SalesOrderID = sdp.SalesOrderID
+JOIN Customer c
+ON soh.CustomerID = c.CustomerID
+ORDER BY SubTotal DESC;
   
 --   result:
 -- CompanyName	SubTotal	sumWeight
@@ -212,70 +136,38 @@ ORDER BY SubTotal DESC
 -- Instruments and Parts Company	63980.99	731576.77
 -- ...
 
--- 10)
--- method 1:
-select sum(SalesOrderDetail.OrderQty) as numProducts
-from SalesOrderDetail
- join product on SalesOrderDetail.ProductID = product.ProductID
- join SalesOrderHeader on SalesOrderDetail.SalesOrderID = SalesOrderHeader.SalesOrderID
- join Customer on SalesOrderHeader.CustomerID = Customer.CustomerID
- join CustomerAddress on Customer.CustomerID = CustomerAddress.CustomerID
- join Address on CustomerAddress.AddressID = Address.AddressID
- join ProductCategory on Product.ProductCategoryID = ProductCategory.ProductCategoryID
+-- 10) How many products in ProductCategory 'Cranksets' have been sold to an address in 'London'?
 
-where ProductCategory.Name = 'Cranksets'
-      and Address.City = 'London';
-      
---  method 2:
 SELECT SUM(DP.salesQTY) totalProducts
-FROM
-(SELECT SalesOrderID, SUM(OrderQty) salesQTY
- FROM SalesOrderDetail sod
-     JOIN Product p
-     ON sod.ProductID = p.ProductID
-     JOIN ProductCategory pc
-     ON p.ProductCategoryID = pc.ProductCategoryID
- WHERE pc.Name = 'Cranksets'
- GROUP BY SalesOrderID) DP
-JOIN
-(SELECT SalesOrderID
- FROM SalesOrderHeader soh
- JOIN Address a
- ON soh.ShipToAddressID = a.AddressID
- WHERE a.City = 'London') HA
-ON DP.SalesOrderID = HA.SalesOrderID
+FROM (SELECT SalesOrderID, SUM(OrderQty) salesQTY
+	FROM SalesOrderDetail sod
+	JOIN Product p ON sod.ProductID = p.ProductID
+	JOIN ProductCategory pc ON p.ProductCategoryID = pc.ProductCategoryID
+	WHERE pc.Name = 'Cranksets'
+	GROUP BY SalesOrderID) DP
+JOIN (SELECT SalesOrderID
+	FROM SalesOrderHeader soh
+ 	JOIN Address a ON soh.ShipToAddressID = a.AddressID
+ 	WHERE a.City = 'London') HA ON DP.SalesOrderID = HA.SalesOrderID
 GROUP BY DP.SalesOrderID
       
 -- result:
 -- numProducts
 -- 9
 
+-- 11) For every customer with a 'Main Office' in Dallas show AddressLine1 of the 'Main Office' and AddressLine1 of the 'Shipping' address - if there is no shipping address leave it blank. Use one row per customer.
 
--- 11)
--- method 1:
-select CompanyName,
-  max(case when AddressType = 'Main Office' then AddressLine1 else '' end) as mainOfficeAddress,
-  max(case when AddressType = 'Shipping' then AddressLine1 else '' end) as shippingAddress
-from Address
- join CustomerAddress on Address.AddressID = CustomerAddress.AddressID
- join Customer on CustomerAddress.CustomerID = Customer.CustomerID
-where Address.city = 'Dallas'
-group by Customer.CompanyName
-
--- method 2:
 Select Mo.CompanyName, Mo.AddressLine1 M_Ad, Sh.AddressLine1 S_Ad 
 From (Select CompanyName, AddressLine1
             From CustomerAddress As CA
             Join Address As AD On CA.AddressID = AD.AddressID
             Join Customer As CT On CA.CustomerID = CT.CustomerID
             Where City = 'Dallas' And AddressType = 'Main Office') Mo
-Left Outer Join
-            (Select CompanyName, AddressLine1
+Left Join (Select CompanyName, AddressLine1
              From CustomerAddress As CA
              Join Address As AD On CA.AddressID = Ad.AddressID
              Join Customer As CT On CA.CustomerID = CT.CustomerID
-             Where AddressType ='Shipping') Sh
-On Mo.CompanyName = Sh.CompanyName
+             Where AddressType ='Shipping') Sh On Mo.CompanyName = Sh.CompanyName
 
 -- Result:
 -- CompanyName	mainOfficeAdd..	shippingAddre..
@@ -285,25 +177,18 @@ On Mo.CompanyName = Sh.CompanyName
 -- Town Industries	P.O. Box 6256916	
 -- Unsurpassed Bikes	Po Box 8035996	
 
--- 12)
--- method 1:
-select SalesOrderHeader.SalesOrderID, SalesOrderHeader.SubTotal as ST1,
-  sum(SalesOrderDetail.OrderQty * SalesOrderDetail.UnitPrice) as ST2,
-  sum(SalesOrderDetail.OrderQty * Product.ListPrice) as ST3
-from SalesOrderHeader
-  join SalesOrderDetail on SalesOrderHeader.SalesOrderID = SalesOrderDetail.SalesOrderID
-  join Product on SalesOrderDetail.ProductID = Product.ProductID
-group by SalesOrderHeader.SalesOrderID, SalesOrderHeader.SubTotal;
+-- 12) For each order show the SalesOrderID and SubTotal calculated three ways:
+A) From the SalesOrderHeader
+B) Sum of OrderQty*UnitPrice
+C) Sum of OrderQty*ListPrice (promotion amount)
 
--- method 2:
-Select SOH.SalesOrderID, 
-           Max(SubTotal) As SubTotal, 
-           Sum(OrderQty*UnitPrice) As 'Qty_UP', 
-    Sum(OrderQty*ListPrice) As 'Qty_LP'
-From SalesOrderDetail As SOD 
-Join SalesOrderHeader As SOH On SOD.SalesOrderID = SOH.SalesOrderID
-Left outer Join Product As PD On SOD.ProductID = PD.ProductID
-Group By SOH.SalesOrderID
+SELECT oh.SalesOrderID, oh.SubTotal, 
+SUM (od.OrderQty * od.UnitPrice) as SubTotal_by_UnitPrice,
+SUM (od.OrderQty * p.ListPrice) as SubTotal_by_ListPrice
+FROM SalesOrderHeader oh
+JOIN SalesOrderDetail od on oh.SalesOrderID = od.SalesOrderID 
+LEFT JOIN Product p on p.ProductID = od.ProductID 
+GROUP BY oh.SalesOrderID, oh.SubTotal;
 
 -- Result:
 -- SalesOrderID	ST1	ST2	ST3
@@ -315,48 +200,42 @@ Group By SOH.SalesOrderID
 -- 71784	108561.83	90341.14	151932.58
 -- ...
 
--- 13)
+-- 13) Show the best selling item by value.
+
 -- method 1:
-select * from
-(select Product.Name, sum(SalesOrderDetail.OrderQty * SalesOrderDetail.UnitPrice) as Value, RANK() OVER (PARTITION BY 1 order by sum(SalesOrderDetail.OrderQty * SalesOrderDetail.UnitPrice) desc) as rn
-from Product
- join SalesOrderDetail on Product.ProductID = SalesOrderDetail.ProductID
-group by Product.Name)a
-where rn = 1;
+SELECT * 
+FROM (SELECT ProductID, Sum(OrderQty*UnitPrice) AS 'Value', 
+	RANK() OVER (PARTITION BY 1 ORDER BY Sum(OrderQty*UnitPrice) DESC) AS Rank  
+	FROM SalesOrderDetail SOD GROUP BY ProductID) base
+WHERE Rank=1;
 
 -- method 2:
-Select Top 1 Name, 
-                      Sum(OrderQty) As 'Total Qty', 
-                      Sum(UnitPrice) As 'Total Price', 
-                      Sum(OrderQty*UnitPrice) As 'Value'
-From SalesOrderDetail As SOD
-Join Product AS PD On SOD.ProductID = PD.ProductID
-Group By Name
-Order By 'Value' Desc
+SELECT Top 1 Name, Sum(OrderQty) As 'Total Qty',  
+	Sum(UnitPrice) As 'Total Price', Sum(OrderQty*UnitPrice) As 'Value'
+FROM SalesOrderDetail SOD
+JOIN Product PD ON SOD.ProductID = PD.ProductID
+GROUP BY Name
+ORDER BY 'Value' Desc;
 
 -- result:
 -- Name	Value	rn
 -- Touring-1000 Blue, 60	37191.44	1
 
--- 14)
-select a.range as RANGE, count(a.Total) as 'Num orders', sum(a.Total) as 'Total Value'
-from ( select
-      case when SalesOrderDetail.UnitPrice * SalesOrderDetail.OrderQty between 0 and 99
-      then '0 - 99'
-      when SalesOrderDetail.UnitPrice * SalesOrderDetail.OrderQty between 100 and 999
-      then '100-999'
-      when SalesOrderDetail.UnitPrice * SalesOrderDetail.OrderQty between 1000 and 9999
-      then '1000-9999'
-      when SalesOrderDetail.UnitPrice * SalesOrderDetail.OrderQty > 10000
-      then '10000-'
-      else ''
-      end as range,
-      SalesOrderDetail.UnitPrice * SalesOrderDetail.OrderQty AS Total
-      from SalesOrderDetail
-      )a
+-- 14) Show how many orders are in the following ranges (in $):
+    RANGE      Num Orders      Total Value
+    0-  99
+  100- 999
+ 1000-9999
+10000-
 
-group by a.range
-order by a.range;
+SELECT X.Range,  SUM(1) AS '# Of Orders', SUM(X.SubTotal) AS 'Total Value'
+FROM (SELECT CASE WHEN SubTotal < 100 Then '0-99'
+	WHEN SubTotal Between 100 And 999 Then '100-999'
+	WHEN SubTotal Between 1000 And 9999 Then '1000-9999'
+	WHEN SubTotal > 10000 Then '10000-' Else '' End As 'Range', 
+	1 AS 'NumOrder', SubTotal
+	From SalesOrderHeader As SOD) AS X
+GROUP BY X.Range;
 
 -- Result:
 -- RANGE	Num orders	Total Value
@@ -365,41 +244,33 @@ order by a.range;
 -- 1000-9999	138	433813.21
 -- 10000-	8	113661.13
 
--- 15)
+-- 15) Identify the three most important cities. Show the break down of top level product category against city.
 
 Select * 
 From (Select ee.City, dd.ProductCateName, sum(Tot) As Total, 
-                       rank() over (Partition by ee.city order by sum(tot) desc) as Ranknum
-             From (Select SalesOrderId, 
-			   cc.Name ProductCateName, 
-                                    Sum(OrderQty*UnitPrice)  Tot
-                         From SalesOrderDetail aa
-                         Join Product bb 
-                         On aa.ProductID=bb.ProductID
-                         Join ProductCategory cc 
-                         On bb.ProductCategoryID=cc.ProductCategoryID
-                         Group by SalesOrderId, cc.Name ) dd
-              Join
-                     (Select bb.City, SalesOrderID, SubTotal
-                      From SalesOrderHeader aa 
-                      Join Address bb 
-		  On aa.ShipToAddressID=bb.AddressID
-                      Join 
-                             (Select top 3 City
-   From SalesOrderHeader aa 
-   Join Address bb 
-   On aa.ShipToAddressID=bb.AddressID
-   Group by City  
-   Order by sum(SubTotal) desc) CC
- On bb.City=CC.City) ee 
+        rank() over (Partition by ee.city order by sum(tot) desc) as Ranknum
+        From (Select SalesOrderId, 
+		cc.Name ProductCateName, 
+        	Sum(OrderQty*UnitPrice)  Tot
+                From SalesOrderDetail aa
+                Join Product bb On aa.ProductID=bb.ProductID
+                Join ProductCategory cc On bb.ProductCategoryID=cc.ProductCategoryID
+                Group by SalesOrderId, cc.Name ) dd
+              JOIN (Select bb.City, SalesOrderID, SubTotal
+		From SalesOrderHeader aa 
+                Join Address bb On aa.ShipToAddressID=bb.AddressID
+                Join (Select top 3 City
+   			From SalesOrderHeader aa 
+   			Join Address bb On aa.ShipToAddressID=bb.AddressID
+   			Group by City  
+   			Order by sum(SubTotal) desc) CC On bb.City=CC.City) ee 
                 On dd.SalesOrderID=ee.SalesOrderID
                 Group by ee.City, dd.ProductCateName) ddd
 Where Ranknum=1
 
 -- step by step:
 -- select 3  city
-select top 3 * from(
-select Address.City, sum(SalesOrderDetail.OrderQty * SalesOrderDetail.UnitPrice) as TotalSales
+select top 3 * from(select Address.City, sum(SalesOrderDetail.OrderQty * SalesOrderDetail.UnitPrice) as TotalSales
 from SalesOrderDetail
  join product on SalesOrderDetail.ProductID = product.ProductID
  join SalesOrderHeader on SalesOrderDetail.SalesOrderID = SalesOrderHeader.SalesOrderID
@@ -420,6 +291,7 @@ order by TotalSales desc;
 -- Gloucestershire	53248.57
 
 -- # select top level product category
+
 select Address.City, ProductCategory.Name as product_Category_Name, max(sum(SalesOrderDetail.OrderQty * SalesOrderDetail.UnitPrice) as TotalSales)
 from ()
   join SalesOrderHeader on Address.AddressID = SalesOrderHeader.ShipToAddressID
@@ -438,44 +310,27 @@ order by TotalSales desc, ProductCategory.Name;
 
 
 
--- 1)
--- method 1:
-select SalesOrderHeader.SalesOrderID, Customer.CompanyName
-from Customer
-left join SalesOrderHeader on Customer.CustomerID = SalesOrderHeader.CustomerID
-where CompanyName like '%Good Toys%'
-   or CompanyName like '%Bike World%'
-   
--- method 2:  
-SELECT COUNT(SalesOrderID) AS SalesOrderNumber
+-- 1) List the SalesOrderNumber for the customer 'Good Toys' 'Bike World'.
+
+SELECT SalesOrderID AS SalesOrderNumber
 FROM SalesOrderHeader 
 WHERE CustomerID IN (SELECT CustomerID FROM Customer
-		        	          WHERE CompanyName IN ('Good Toys', 'Bike World'))
+WHERE CompanyName IN ('Good Toys', 'Bike World'))
 
 -- result:  
 -- SalesOrderID	CompanyName
 --               Bike World
 -- 71774	        Good Toys
 
--- 2)
--- method 1:
-select Product.Name, SalesOrderDetail.OrderQty
-from Customer
-join SalesOrderHeader on Customer.CustomerID = SalesOrderHeader.CustomerID
-join SalesOrderDetail on SalesOrderHeader.SalesOrderID = SalesOrderDetail.SalesOrderID
-join Product on SalesOrderDetail.ProductID = Product.ProductID
-where Customer.CompanyName = 'Futuristic Bikes';
-
--- method 2:
-SELECT  Name ProductName,  SUM(OrderQty) AS OrderQty
-FROM SalesOrderDetail sod
-	JOIN Product p
-	ON sod.ProductID = p.ProductID
+-- 2) List the ProductName and the quantity of what was ordered by 'Futuristic Bikes'.
+SELECT Name, Sum(OrderQty) AS OrderQty
+FROM SalesOrderDetail sd
+JOIN product pd ON sd.Productid=pd.Productid
 WHERE SalesOrderID IN (SELECT SalesOrderID 
-                                            FROM SalesOrderHeader AS Sh
-                                            WHERE CustomerID IN (SELECT CustomerID
-						FROM Customer
-						WHERE CompanyName = 'Futuristic Bikes'))
+                        FROM SalesOrderHeader SH
+                        WHERE CustomerID in (SELECT CustomerID
+                                              FROM Customer
+                                              WHERE CompanyName ='Futuristic Bikes'))
 GROUP BY Name
 
 -- Result:
@@ -484,33 +339,16 @@ GROUP BY Name
 -- Long-Sleeve Logo Jersey, L	2
 -- Classic Vest, S	3
 
--- 3)
--- method 1:
-select a.CompanyName, Address.AddressLine1, Address.AddressLine2, Address.City, Address.StateProvince, Address.CountyRegion, Address.PostalCode
-from (
-select distinct CustomerID, CompanyName, 1 AS 'Rank'
-from Customer
-where lower(CompanyName) LIKE '%bike%'
-union select distinct CustomerID, CompanyName, 2 AS 'Rank'
-from Customer
-where LOWER(CompanyName) LIKE '%cycle%')a
-join CustomerAddress on a.CustomerID = CustomerAddress.CustomerID
-join Address on CustomerAddress.AddressID = Address.AddressID
-order by a.Rank, a.CompanyName;
+-- 3) List the name and addresses of companies containing the word 'Bike' (upper or lower case) and companies containing 'cycle' (upper or lower case). Ensure that the 'bike's are listed before the 'cycles's.
 
--- method 2:
-
-SELECT DISTINCT CompanyName, AddressLine1, AddressLine2
-FROM Customer AS c
-  JOIN CustomerAddress AS ca ON ca.CustomerID = c.CustomerID
-  JOIN Address AS a ON a.AddressID = ca.AddressID
-WHERE lower(CompanyName) LIKE '%bike%'
-UNION ALL
-SELECT DISTINCT CompanyName, AddressLine1, AddressLine2
-FROM Customer AS c
-  JOIN CustomerAddress AS ca ON ca.CustomerID = c.CustomerID
-  JOIN Address AS a ON a.AddressID = ca.AddressID
-WHERE lower(CompanyName) LIKE '%cycle%'
+SELECT (CASE WHEN UPPER(CompanyName) LIKE '%BIKE%' THEN 'Bike'
+        ELSE 'Cycle' END) AS Keyword,
+	CompanyName, AddressLine1
+FROM Customer c
+JOIN CustomerAddress ca ON c.CustomerID = ca.CustomerID AND ca.AddressType = 'Main Office'
+JOIN Address a ON ca.AddressID = a.AddressID
+WHERE UPPER(CompanyName) LIKE '%BIKE%' or UPPER(CompanyName) LIKE '%CYCLE%'
+ORDER BY Keyword;
 
 -- result:
 -- CompanyName	AddressLine1	AddressLine2	City	StateProvince	CountyRegion	PostalCode
@@ -525,31 +363,205 @@ WHERE lower(CompanyName) LIKE '%cycle%'
 -- Big-Time Bike Store	9909 W. Ventura Boulevard	NULL	Camarillo	California	United States	93010
 -- Bike Dealers Association	9952 E. Lohman Ave.	NULL	Las Cruces	New Mexico	United States	88001
 
--- 4)
-select Address.CountyRegion, SUM(SubTotal) as SumRegion
-from SalesOrderHeader
-join Address on SalesOrderHeader.ShipToAddressID = Address.AddressID
-group by Address.CountyRegion
-order by SumRegion desc;
+-- 4) Show the total order value for each CountryRegion. List by value with the highest first.
+
+SELECT CountyRegion, SUM(SubTotal) AS 'SubTotal'
+FROM SalesOrderHeader AS SOH
+JOIN Address AS AD ON SOH.ShipToAddressID = AD.AddressID
+GROUP BY CountyRegion
+ORDER BY 'SubTotal' DESC;
 
 -- Result:
 -- CountyRegion	SumRegion
 -- United Kingdom	518096.42
 -- United States	347336.69
 
--- 5)
-select CountyRegion, CustomerID, reTotal
-from(
-select CountyRegion, CustomerAddress.CustomerID, sum(SubTotal)as reTotal,
-RANK() OVER (PARTITION BY Address.CountyRegion order BY sum(SubTotal) desc) as rn
-from Address
-join CustomerAddress on Address.AddressID = CustomerAddress.AddressID
-join SalesOrderHeader on CustomerAddress.CustomerID= SalesOrderHeader.CustomerID
-group by CustomerAddress.CustomerID, Address.CountyRegion
-)a
-where rn = 1
+-- 5) Find the best customer in each region.
+
+SELECT CountyRegion, CompanyName, SubTotal
+FROM (SELECT CountyRegion, CustomerID, SUM(SubTotal) AS 'SubTotal',
+		Rank() over (PARTITION BY CountyRegion ORDER BY SUM(SubTotal) DESC) AS Rnum
+        FROM SalesOrderHEader AS SOH
+	JOIN Address AS AD ON SOH.ShipToAddressID = AD.AddressID
+	GROUP BY CountyRegion, CustomerID) AS SBQ
+	JOIN Customer CU ON SBQ.CustomerID = CU.CustomerID
+WHERE Rnum = 1;
 
 -- result:
 -- CountyRegion	CustomerID	reTotal
 -- United Kingdom	448	108561.83
 -- United States	24	83858.43
+
+Some extra insights 
+
+-- (DAU) Daily Active Customer Percentage
+
+SELECT (COUNT(DISTINCT c.CustomerID) * 100.0) / (SELECT COUNT(DISTINCT CustomerID) FROM SAW.Customer) AS 'Daily Active Customer Percentage'
+FROM Customer c
+JOIN SalesOrderHeader oh ON c.CustomerID = oh.CustomerID;
+
+-- Product profit margin 
+
+SELECT PM.ProductModelID, PM.Name AS ProductModelName,
+    (SUM(SD.UnitPrice * SD.OrderQty) - SUM(P.StandardCost * SD.OrderQty)) / SUM(SD.UnitPrice * SD.OrderQty) * 100 AS ProfitMargin
+FROM ProductModel PM
+JOIN Product P ON PM.ProductModelID = P.ProductModelID
+LEFT JOIN SalesOrderDetail SD ON P.ProductID = SD.ProductID
+GROUP BY PM.ProductModelID, PM.Name
+ORDER BY ProfitMargin DESC;
+
+-- Order customers by total sales (Customer Lifetime Value (CLV) Analysis OF ONE DAY)
+
+SELECT C.CustomerID, C.FirstName, C.LastName, SUM(SH.SubTotal) AS TotalSales
+FROM Customer C
+JOIN SalesOrderHeader SH ON C.CustomerID = SH.CustomerID
+GROUP BY C.CustomerID, C.FirstName, C.LastName
+ORDER BY TotalSales DESC;
+
+-- TOTAL ORDER COUNT per Customer
+
+SELECT 
+    C.CustomerID,
+    C.FirstName,
+    C.LastName,
+    COUNT(SH.SalesOrderID) AS OrderCount
+FROM Customer C
+JOIN SalesOrderHeader SH ON C.CustomerID = SH.CustomerID
+JOIN SalesOrderDetail SD ON SH.SalesOrderID = SD.SalesOrderID
+JOIN Product P ON SD.ProductID = P.ProductID
+JOIN ProductCategory PC ON P.ProductCategoryID = PC.ProductCategoryID
+GROUP BY C.CustomerID, C.FirstName, C.LastName
+ORDER BY OrderCount DESC
+OFFSET     0 ROWS      
+FETCH NEXT 10 ROWS ONLY;
+
+-- Geographic Distribution
+
+SELECT City, StateProvince, CountyRegion, PostalCode,
+    COUNT(*) AS CustomerCount
+FROM Address
+JOIN CustomerAddress CA ON Address.AddressID = CA.AddressID
+GROUP BY City, StateProvince, CountyRegion, PostalCode
+ORDER BY CustomerCount DESC;
+
+-- Customer Segmentation by Product Category
+
+SELECT C.CustomerID, C.FirstName, C.LastName, PC.Name AS ProductCategory,
+    COUNT(SH.SalesOrderID) AS OrderCount
+FROM Customer C
+JOIN SalesOrderHeader SH ON C.CustomerID = SH.CustomerID
+JOIN SalesOrderDetail SD ON SH.SalesOrderID = SD.SalesOrderID
+JOIN Product P ON SD.ProductID = P.ProductID
+JOIN ProductCategory PC ON P.ProductCategoryID = PC.ProductCategoryID
+GROUP BY C.CustomerID, C.FirstName, C.LastName, PC.Name
+ORDER BY C.CustomerID, OrderCount DESC;
+
+-- Top Salespersons by Revenue:
+
+SELECT C.SalesPerson, SUM(SH.SubTotal) AS TotalSales
+FROM Customer C
+JOIN SalesOrderHeader SH ON C.CustomerID = SH.CustomerID
+GROUP BY C.SalesPerson
+ORDER BY TotalSales DESC;
+
+-- Total Product Sold and Sales 
+SELECT P.ProductID, P.Name AS ProductName, SUM(SD.OrderQty) AS TotalQuantitySold,
+	SUM(SubTotal) AS TotalSales
+FROM Product P
+JOIN SalesOrderDetail SD ON P.ProductID = SD.ProductID
+JOIN SalesOrderHeader SH ON SD.SalesOrderID = SH.SalesOrderID
+GROUP BY P.ProductID, P.Name
+ORDER BY TotalQuantitySold DESC;
+
+-- View the details of Individual Sales Orders
+
+SELECT 
+    SH.SalesOrderID,
+    C.CustomerID,
+    C.FirstName,
+    C.LastName,
+    SD.ProductID,
+    P.Name AS ProductName,
+    SD.OrderQty,
+    SD.UnitPrice,
+    SD.UnitPriceDiscount,
+    SD.OrderQty * SD.UnitPrice AS TotalPrice
+FROM SalesOrderHeader SH
+JOIN Customer C ON SH.CustomerID = C.CustomerID
+JOIN SalesOrderDetail SD ON SH.SalesOrderID = SD.SalesOrderID
+JOIN Product P ON SD.ProductID = P.ProductID
+Order by SH.SalesOrderID;
+
+-- Top-Selling Products: by Qty
+SELECT 
+    P.ProductID,
+    P.Name AS ProductName,
+    P.Color,
+    SUM(SD.OrderQty) AS TotalQuantitySold
+FROM Product P
+JOIN SalesOrderDetail SD ON P.ProductID = SD.ProductID
+GROUP BY P.ProductID, P.Name, P.Color
+ORDER BY TotalQuantitySold DESC;
+
+-- Product Sales Revenue:
+
+SELECT 
+    P.ProductID,
+    P.Name AS ProductName,
+    P.Color,
+    SUM(SD.OrderQty * SD.UnitPrice) AS TotalRevenue
+FROM Product P
+JOIN SalesOrderDetail SD ON P.ProductID = SD.ProductID
+GROUP BY P.ProductID, P.Name, P.Color
+ORDER BY TotalRevenue DESC;
+
+-- Average Order Quantity by Product Category:
+
+SELECT 
+    PC.ProductCategoryID,
+    PC.Name AS CategoryName,
+    AVG(SD.OrderQty) AS AverageOrderQuantity
+FROM Product P
+JOIN SalesOrderDetail SD ON P.ProductID = SD.ProductID
+JOIN ProductCategory PC ON P.ProductCategoryID = PC.ProductCategoryID
+GROUP BY PC.ProductCategoryID, PC.Name
+ORDER BY AverageOrderQuantity DESC;
+
+-- Product Categories and Customer Demand:  Total Quantity Sold
+
+SELECT 
+    PC.ProductCategoryID,
+    PC.Name AS CategoryName,
+    SUM(SD.OrderQty) AS TotalQuantitySold
+FROM Product P
+JOIN SalesOrderDetail SD ON P.ProductID = SD.ProductID
+JOIN ProductCategory PC ON P.ProductCategoryID = PC.ProductCategoryID
+GROUP BY PC.ProductCategoryID, PC.Name
+ORDER BY TotalQuantitySold DESC;
+
+-- Culture: number of products
+
+SELECT
+    pdd.Culture,
+    COUNT(*) AS NumberOfProducts,
+FROM ProductDescription pd
+JOIN ProductModelProductDescription pdd on pd.ProductDescriptionID = pdd.ProductDescriptionID
+GROUP BY pdd.Culture
+ORDER BY NumberOfProducts DESC;
+
+-- Order Detail Analysis
+
+SELECT ProductID, AVG(OrderQty) AS AverageQuantity, AVG(UnitPrice) AS AverageUnitPrice
+FROM SalesOrderDetail
+GROUP BY ProductID;
+
+-- Product Unit Price Distribution
+
+SELECT 
+    ProductID,
+    MIN(UnitPrice) AS MinUnitPrice,
+    MAX(UnitPrice) AS MaxUnitPrice,
+    AVG(UnitPrice) AS AvgUnitPrice,
+    COUNT(*) AS NumberOfOrders
+FROM SalesOrderDetail
+GROUP BY ProductID;
