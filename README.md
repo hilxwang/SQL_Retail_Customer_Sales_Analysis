@@ -12,3 +12,6 @@ ProductModelProductDescription(ProductModelID, ProductDescriptionID, Culture)
 ProductDescription(ProductDescriptionID, Description) 
 
 ![image](https://github.com/hilxwang/SQL_Retail_Customer_Sales_Analysis/assets/96967687/a88a2d84-f980-4786-b761-0b1081a8d8f4)
+
+Lesson Learned
+business, SQL performence, understand business logics(how many items), ad hoc analysis
