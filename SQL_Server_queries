@@ -312,15 +312,15 @@ order by TotalSales desc, ProductCategory.Name;
 
 -- 1) List the SalesOrderNumber for the customer 'Good Toys' 'Bike World'.
 
-SELECT SalesOrderID AS SalesOrderNumber
+SELECT SalesOrderID AS SalesOrderNumber, Customer.CompanyName
 FROM SalesOrderHeader 
-WHERE CustomerID IN (SELECT CustomerID FROM Customer
-WHERE CompanyName IN ('Good Toys', 'Bike World'))
+JOIN Customer ON SalesOrderHeader.CustomerID = Customer.CustomerID
+WHERE CompanyName IN ('Good Toys', 'Bike World');
 
 -- result:  
 -- SalesOrderID	CompanyName
 --               Bike World
--- 71774	        Good Toys
+-- 71774	 Good Toys
 
 -- 2) List the ProductName and the quantity of what was ordered by 'Futuristic Bikes'.
 SELECT Name, Sum(OrderQty) AS OrderQty
@@ -331,7 +331,7 @@ WHERE SalesOrderID IN (SELECT SalesOrderID
                         WHERE CustomerID in (SELECT CustomerID
                                               FROM Customer
                                               WHERE CompanyName ='Futuristic Bikes'))
-GROUP BY Name
+GROUP BY Name;
 
 -- Result:
 -- Name	OrderQty
