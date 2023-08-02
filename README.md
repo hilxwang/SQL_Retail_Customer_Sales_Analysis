@@ -15,3 +15,4 @@ ProductDescription(ProductDescriptionID, Description)
 
 Lesson Learned
 business, SQL performence, understand business logics(how many items), ad hoc analysis
+data accurcy, data modeling 
